@@ -301,6 +301,56 @@ pub const Widget = struct {
     }
 };
 
+/// Automatically create a Widget interface for a given value with the required methods
+pub fn asWidget(w: anytype) Widget {
+    const Ptr = @TypeOf(w);
+    const PtrInfo = @typeInfo(Ptr);
+    if (comptime std.meta.activeTag(PtrInfo) != .pointer) {
+        @compileError("Must pass Widget type " ++ @typeName(Ptr) ++ " as pointer, got kind " ++ @tagName(std.meta.activeTag(PtrInfo)));
+    } else {
+        const T = PtrInfo.pointer.child;
+
+        const Impl = struct {
+            pub fn drawFn(userdata: *anyopaque, ctx: DrawContext) Allocator.Error!Surface {
+                if (comptime std.meta.hasMethod(T, "draw")) {
+                    const DrawFn = @TypeOf(T.draw);
+                    const DrawFnInfo = @typeInfo(DrawFn);
+                    if (comptime (std.meta.activeTag(DrawFnInfo) != .@"fn") and (DrawFnInfo.@"fn".params[0].type != Ptr) and (DrawFnInfo.@"fn".params[1].type != DrawContext)) {
+                        @compileError(@typeName(T) ++ ".draw must be function of type " ++ @typeName(fn (Ptr, DrawContext) anyerror!void));
+                    } else {
+                        const p: Ptr = @ptrCast(@alignCast(userdata));
+                        return p.draw(ctx);
+                    }
+                } else {
+                    @compileError("Widget type must implement draw");
+                }
+            }
+
+            pub fn captureHandler(userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void {
+                if (comptime std.meta.hasMethod(T, "captureHandler")) {
+                    const p: Ptr = @ptrCast(@alignCast(userdata));
+                    return p.captureHandler(ctx, event);
+                } else {
+                    @panic("eventHandler unimplemented");
+                }
+            }
+
+            pub fn eventHandler(userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void {
+                if (comptime std.meta.hasMethod(T, "eventHandler")) {
+                    const p: Ptr = @ptrCast(@alignCast(userdata));
+                    return p.eventHandler(ctx, event);
+                }
+            }
+        };
+        return .{
+            .userdata = w,
+            .drawFn = Impl.drawFn,
+            .captureHandler = if (std.meta.hasMethod(T, "captureHandler")) Impl.captureHandler else null,
+            .eventHandler = if (std.meta.hasMethod(T, "eventHandler")) Impl.eventHandler else null,
+        };
+    }
+}
+
 pub const FlexItem = struct {
     widget: Widget,
     /// A value of zero means the child will have it's inherent size. Any value greater than zero
