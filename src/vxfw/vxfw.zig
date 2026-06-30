@@ -26,6 +26,7 @@ pub const SplitView = @import("SplitView.zig");
 pub const Spinner = @import("Spinner.zig");
 pub const Text = @import("Text.zig");
 pub const TextField = @import("TextField.zig");
+pub const Image = @import("Image.zig");
 
 pub const CommandList = std.ArrayList(Command);
 
@@ -347,6 +348,9 @@ pub const Surface = struct {
     /// Contents of this surface. Must be len == 0 or  len == size.width * size.height
     buffer: []vaxis.Cell,
 
+    background: ?vaxis.Image = null,
+    background_options: ?vaxis.Image.DrawOptions = null,
+
     children: []SubSurface,
 
     pub fn empty(widget: Widget) Surface {
@@ -434,6 +438,10 @@ pub const Surface = struct {
     /// Copies all cells from Surface to Window
     pub fn render(self: Surface, win: vaxis.Window, focused: Widget) void {
         // render self first
+        if (self.background) |bgimage| {
+            bgimage.draw(win, self.background_options orelse .{}) catch {};
+        }
+
         if (self.buffer.len > 0) {
             assert(self.buffer.len == self.size.width * self.size.height);
             for (self.buffer, 0..) |cell, i| {

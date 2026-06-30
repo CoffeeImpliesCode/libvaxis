@@ -201,6 +201,14 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     }
 }
 
+pub fn loadImage(self: *App, src: vaxis.Image.Source) !vaxis.Image {
+    return self.vx.loadImage(self.allocator, self.tty.writer(), src);
+}
+
+pub fn freeImage(self: *App, img: vaxis.Image) void {
+    return self.vx.freeImage(self.tty.writer(), img.id);
+}
+
 fn doLayout(
     self: *App,
     widget: vxfw.Widget,
