@@ -566,6 +566,9 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
     // @truncate so we check manually.
     self.last_height = if (total_height > 255) 255 else @intCast(total_height);
 
+    // make ScrollView shrink-to-fit
+    std.debug.assert(self.last_height <= surface.size.height);
+    surface.size.height = self.last_height;
     return surface;
 }
 
