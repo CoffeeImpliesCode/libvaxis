@@ -6,3 +6,4 @@ zig-pkg/
 Session*.*vim
 commit_msg
 *.sw?
+*.old
